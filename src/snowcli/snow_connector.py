@@ -115,13 +115,17 @@ class SnowflakeConnector:
         self.cs.execute(f"use database {database}")
         self.cs.execute(f"use schema {schema}")
         self.cs.execute(
-            f"create stage if not exists {destination_stage} "
-            'comment="deployments managed by snowcli"',
+            (
+                f"create stage if not exists {destination_stage} "
+                'comment="deployments managed by snowcli"'
+            ),
         )
         self.cs.execute(
-            f"PUT file://{file_path} @{destination_stage}{path} "
-            "auto_compress=false overwrite="
-            f'{"true" if overwrite else "false"}',
+            (
+                f"PUT file://{file_path} @{destination_stage}{path} "
+                "auto_compress=false overwrite="
+                f"{'true' if overwrite else 'false'}"
+            ),
         )
         return self.cs.fetchone()[0]
 
@@ -419,6 +423,8 @@ class SnowflakeConnector:
         schema="",
         role="",
         warehouse="",
+        like="%%",
+        where="TRUE",
     ) -> SnowflakeCursor:
         return self.runSql(
             "list_streamlits",
@@ -427,6 +433,8 @@ class SnowflakeConnector:
                 "schema": schema,
                 "role": role,
                 "warehouse": warehouse,
+                "like": like,
+                "where": where,
             },
         )
 
@@ -436,7 +444,6 @@ class SnowflakeConnector:
         schema="",
         role="",
         warehouse="",
-        like="%%",
     ) -> SnowflakeCursor:
         return self.runSql(
             "show_warehouses",
@@ -499,8 +506,7 @@ class SnowflakeConnector:
         name="",
         drop_stage: bool = True,
     ) -> SnowflakeCursor:
-
-        drop_command = f'drop stage "{name}_STAGE";' if drop_stage else ""
+        drop_command = f"drop stage {name}_stage;" if drop_stage else ""
 
         return self.runSql(
             "drop_streamlit",
@@ -600,6 +606,4 @@ class SnowflakeConnector:
             raise (e)
 
     def generate_signature_from_params(self, params: str) -> str:
-        if params == "()":
-            return "()"
-        return "(" + " ".join(params.split()[1::2])
+        return "(" + " ".join(params.strip("()").split()[1::2]) + ")"
